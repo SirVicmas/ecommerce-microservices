@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  products:
+    build: ./services/products
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: productsdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  orders:
+    build: ./services/orders
+    ports:
+      - "3002:3002"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: ordersdb
+      PRODUCTS_SERVICE_URL: http://products:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PRODUCTS_SERVICE_URL: http://products:3001
+      ORDERS_SERVICE_URL: http://orders:3002
+    depends_on:
+      - products
+      - orders
+
+volumes:
+  postgres_data:
