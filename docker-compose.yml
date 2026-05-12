@@ -105,6 +105,18 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  frontend:
+    build: ./services/frontend
+    ports:
+      - "3004:80"
+    depends_on:
+      - api-gateway
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
   nginx:
     image: nginx:alpine
     ports:
