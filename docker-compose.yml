@@ -3,19 +3,22 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./services/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -31,8 +34,8 @@ services:
       - "3001:3001"
     environment:
       DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: productsdb
     depends_on:
       postgres:
@@ -49,11 +52,11 @@ services:
       - "3002:3002"
     environment:
       DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ordersdb
       PRODUCTS_SERVICE_URL: http://products:3001
-      RABBITMQ_URL: amqp://rabbitmq
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,17 +68,16 @@ services:
           cpus: '0.5'
           memory: 512M
 
-
   inventory:
     build: ./services/inventory
     ports:
       - "3003:3003"
     environment:
       DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: productsdb
-      RABBITMQ_URL: amqp://rabbitmq
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
